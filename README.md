@@ -264,7 +264,7 @@ var factorialFacade = (function() {
 })();
 ```
 
-[See this live on Plunker!](http://plnkr.co/edit/RxgtEUzah6DmC1jnlcim?p=preview)
+[See it live on Plunker!](http://plnkr.co/edit/RxgtEUzah6DmC1jnlcim?p=preview)
 
 ---
 
@@ -344,7 +344,9 @@ var factorialFacade = (function() {
 ```
 - Notifier method is called -> all its observers will execute.
 - *Reduced coupling:* the observers and subject do not have hard dependencies on each other.
-- [See this live on Plunker!](http://plnkr.co/edit/zOYp5LUINc3GzylhxrZH?p=preview)
+
+<br/>
+[See it live on Plunker!](http://plnkr.co/edit/zOYp5LUINc3GzylhxrZH?p=preview)
 
 ---
 
@@ -402,6 +404,21 @@ var factorialFacade = (function() {
     
   mediator.installTo(soccerMatchSubject);
 ```
+
+----
+
+## Mediator/Pub-Sub
+
+- Again, we just need to add the observers to listen.
+```javascript
+  soccerMatchSubject.subscribe('loggers', consoleObserver);
+  soccerMatchSubject.subscribe('loggers', htmlObserver);
+```
+- Same Observers, same event triggering.
+- Now the Mediator is on top of the control. It is serving as a Pub-Sub infrastructure for components.
+
+<br/>
+[See it live on Plunker!](http://plnkr.co/edit/ZZHMn9?p=preview)
 
 ---
 
@@ -514,7 +531,9 @@ var factorialFacade = (function() {
   });
 ```
 - Notice how a module doesn't know about other modules.
-- [See this live on Plunker!](http://plnkr.co/edit/UVB6IIawq5YySC1T5c3f?p=preview)
+
+<br/>
+[See it live on Plunker!](http://plnkr.co/edit/UVB6IIawq5YySC1T5c3f?p=preview)
 
 ---
 
