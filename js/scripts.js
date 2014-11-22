@@ -4648,7 +4648,7 @@ Reveal.addEventListener('ready', function() {
   'use strict';
 
   var footer = TEMPLATES.footer({
-    title: 'Backbone.js tricks or treats',
+    title: 'Design patterns for JavaScript',
     author: 'Tiago Garcia',
     site: 'http://tiagorg.com'
   });

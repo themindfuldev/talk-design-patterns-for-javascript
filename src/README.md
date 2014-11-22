@@ -8,9 +8,11 @@ You should just edit the source file at src/README.md - the one which stars with
 
 ## @@title
 
-<br/><br/><br/><br/><br/><br/>
+Based on the work of [Stoyan Stefanov](https://twitter.com/stoyanstefanov) and [Addy Osmani](https://twitter.com/addyosmani)
 
-@@author @ [HTML5DevConf](http://html5devconf.com)
+<br/><br/><br/><br/>
+
+[@@author](https://twitter.com/tiagooo_romero) @ [Mobile+Web DevCon](http://mobilewebdevconference.com/)
 
 *@@site*
 
@@ -31,651 +33,515 @@ You should just edit the source file at src/README.md - the one which stars with
 
 ## Agenda
 
- - The jQuery Way
- - Views and Memory leaks
- - Overwhelming the DOM
- - Nesting views
- - Application and Modules
- - Router vs Controller
- - Cohesion
- - Coupling
- - Data binding
- - Components
- - Mocking async calls
+- Patterns and Design Patterns
+- JavaScript Design Patterns
+    - Constructor
+    - Module
+    - Fa&ccedil;ade
+    - Observer aka Custom Event
+    - Mediator aka Pub-Sub
+- Large-Scale JavaScript
+    - Proposed architecture
+    - Applying patterns  
 
 ---
 
 ## Prerequisites
 
-- [Backbone.js](http://slides.com/avenuecode/boosting-the-client-side-with-backbone-js#/)
-- [Design patterns for large-scale javascript](http://slides.com/avenuecode/design-patterns-for-large-scale-javascript#/)
+- Intermediate JavaScript
+- Advanced OOP
+- Familiarity with Design Patterns
 - Curiosity
-- Opinion
 
 ---
 
-## AJAX Rant
+## Patterns
 
-- Think twice before saying AJAX ever again.
-- AJAX = *A*synchronous *J*avascript *A*nd *X*ML.
-- AJAJ = *A*synchronous *J*avascript *A*nd *J*SON.
-- It is hardly because of *XMLHttpRequest* object -> it can transfer in any format.
-- RESTful APIs became popular -> I don't quite see XML responses ever since.
-- XML lacks out-of-the-box support on MV* frameworks.
-- However, *AJAJ* doesn't sound as cool as *AJAX* so people prefer not using the proper term.
-- *ASYNC*, FTW! Who will join me?
+- Pattern: 
+    - Proven *solution* to a certain class of *problems* in a specific *context*.
+    - Pre-conditions (requirements).
+    - Post-conditions (consequences). 
+- Pattern *language*: a common vocabulary.
+    - *Network* of connected patterns -> reuse.
 
 ----
 
-## ASYNC
+## Design Patterns
 
-<img src="img/async.jpg">
+- Design Patterns address common OOP problems.
+- 1994: *Gang Of Four* publishes [Design Patterns](http://www.amazon.com/Design-Patterns-Object-Oriented-Professional-Computing/dp/0201634988), a truly watershed in the history of OOP and the debut of the term.
+   - Features 23 classic design patterns, categorized in *creational*, *structural* and *behavioral*.
+   - Many people believe that "Design Patterns" term is exclusive to those 23 patterns, which is not the case.
+- Back in 1994, programming languages and frameworks native support to Design Patterns was rough.
+- Nowadays, many of those patterns have been incorporated into programming languages and frameworks.
+
+----
+
+## Remember Uncle Ben!
+
+<img src="img/uncle-ben.png">
 
 ---
 
-## The jQuery Way
+## JS Design Patterns
 
-- Backbone depends on jQuery\*, but *depending !== abusing*.
-- Newcomers tend to adopt jQuery-based solutions instead of taking advantage of Backbone.js structures:
-  - *Backbone.Model* takes care of async calls so they **SHOULDN'T** be coded like *`$.ajax()`*.
-  - *Backbone.View* takes care of DOM events binding so they **SHOULDN'T** be coded like *`$(el).click(...)`*.
-- A common scenario in code migrations to Backbone, but simple to fix. Just put Models and Views to do their work.
-- Follow [Step by step from jQuery to Backbone](https://github.com/kjbekkelund/writings/blob/master/published/understanding-backbone.md) to shed some light on this process.
-
----
-
-## Views and Memory leaks
-
-- Backbone leaves much of the code structure for the developer to define and implement.
-- Bad designs easily lead to memory leaks.
-```javascript
-  var MyView = Backbone.View.extend({
-    initialize: function() {
-      this.model && this.model.on('change', this.render, this);
-    },
-    render: function() {
-      alert('Rendering the view');
-    }
-  });
-```
-- *MyView* gets instantiated twice: 1st will never be Garbage Collected, as the model holds its reference -> *Zombie View*.
-- This can cause *side effects* -> alert box will appear twice.
-
-----
-
-## Manual approach
-
-- To fix it, we just need a method to *unbind* the View:
-```javascript
-    close: function() {
-      // Unbind the events that this view is listening to
-      this.stopListening();
-    }
-```
-- However, we must remember to manually call this method whenever we destroy a *MyView* instance.
-- Good practice: use a *Manager* to maintain the current View:
-```javascript
-    showView: function(view) {
-      this.currentView && this.currentView.close();
-      this.currentView = view;
-      this.currentView.render();
-      $('#content').html(this.currentView.el);
-    }
-```
-
-----
-
-## Marionette.js
-
-<img src="img/marionette.png" class="icon" />
-
-<ul class="full">
-  <li>A Backbone.js composite application library to <br/>provide structure for large-scale Javascript.</li>
-  <li>Includes good practices and design & <br/>implementation patterns.</li>
-  <li>Reduces code boilerplate.</li>
-  <li>Provides a modular architecture framework <br/>with a Pub/Sub implementation.</li>
-  <li>And much more...</li>
-</ul>
-
-----
-
-## Marionette's ItemView
-
-- *Marionette.ItemView* extends *Backbone.View* and automates the rendering of a single item (Model or Collection).
-- It implements *render()* for you, applying a given *template* to a Model/Collection.
-- By using *listenTo()* instead of *on()* for binding events, you no longer need to manually invoke a *close* method.
-```javascript
-  var MyView = Marionette.ItemView.extend({
-    template: '#my-ujs-template', // Underscore.js template
-    initialize: function() {
-      this.listenTo(this.model, 'change', this.render);
-    }
-
-    // No render() anymore!! :)
-  });
-```
-
-----
-
-## Marionette's Region
-
-- *Marionette.Region* is a Views container and manager.
-- It properly displays Views on the DOM and disposes them -> no more Zombie Views.
-```javascript
-    var myRegion = new Marionette.Region({
-      el: '#content'
-    });
-
-    var view1 = new MyView({ /* ... */ });
-    myRegion.show(view1); // renders view1 and appends to #content
-
-    var view2 = new MyView({ /* ... */ });
-    myRegion.show(view2); // disposes view1, renders/append view2
-```
+- JS code is more complex today than ever before, as we are bringing the desktop experience to the web, abusing of events, ASYNC, SPA, unit testing, etc.
+- Good reasons to use Design Patterns in JS:
+   - Avoid "spaghetti code" (hard to read and maintain for the lack of structure).
+   - Improve overall maintainability, making it clear to identify where to change the code.
+   - Enable more objective unit tests.
+- Today we are covering some Design Patterns for Large-scale JS applications.
 
 ---
 
-## Overwhelming the DOM
+## Constructor
 
-- In a View which renders a Collection, we normally render a child View for each item and append them to the parent:
+- A special method used to initialize a newly created object once memory has been allocated.
+- JS is indeed OO but it differs from classic OO, and there are different ways to construct an object:
 ```javascript
-    var CollectionView = Backbone.View.extend({
-      render: function() {
-        _.each(this.collection.models, function(item) {
-          var view = new MyView({
-            model: item
-          });
-
-          this.$el.append(view.render().el); // Populating the DOM
-        }, this);
-      }
-    });
-```
-- Say the Collection has N items, this code will make N appends, which is *expensive*. What if N = 1000?
-
-
-----
-
-## Manual approach
-
-- A better approach is to append to a *document fragment* instead, and just add the fragment *once* to the DOM:
-```javascript
-    var CollectionView = Backbone.View.extend({
-      render: function() {
-        var fragment = document.createDocumentFragment();
-
-        _.each(this.collection.models, function(item) {
-          var view = new MyView({
-            model: item
-          });
-
-          fragment.appendChild(view.render().el); // Appending to fragment
-        }, this);
-
-        this.$el.html(fragment); // Populating the DOM
-      }
-    });
+  // object literal a.k.a. Singleton
+  var myDog = {};
+ 
+  // ES5 Object.create method from prototype
+  var myDog = Object.create(Dog.prototype);
+ 
+  // constructor call (uses this to set properties)
+  var myDog = new Dog();
 ```
 
 ----
 
-## Marionette's CollectionView
+## Basic Constructor
 
-- *Marionette.CollectionView* renders a Collection and uses a *Marionette.ItemView* for each item renderization. It doesn't need a template for itself.
-- Uses a *document fragment* internally.
+- *new* must be used before invoking.
+- *this* references the new object being created.
+- Doesn't return anything.
 ```javascript
-  var MyView = Marionette.CollectionView.extend({
-    itemView: MyView
-
-    // No render() anymore!! :)
-  });
-```
-
-----
-
-## Marionette's CompositeView
-
-- *Marionette.CompositeView* is similar to a *Marionette.CollectionView* but also takes a template for itself. Designed for parent-child relationships.
-- Useful to build hierarchical and recursive structures like *trees*.
-```javascript
-  var MyView = Marionette.CompositeView.extend({
-    itemView: MyView,
-    template: '#node-template', // Template for the parent
-    itemViewContainer: 'tbody' // Where to put the itemView instances into
-
-    // No render() anymore!! :)
-  });
-```
-
----
-
-## Nesting views
-
-- Common view nesting:
-```javascript
-  var OuterView = Backbone.View.extend({
-    render: function() {
-      this.$el.append(template);
-
-      // Inner view
-      this.innerView = new InnerView();
-      this.innerView.render();
-      this.$('#some-container').append(this.innerView.$el);
-    }
-  });
-```
-- Every call to *render()* will instantiate again the inner view, and rebind the events.
-- The previous inner views have potential to be Zombies.
-- Inner view is manually created, but never manually disposed.
-
-----
-
-## Manual approach
-
-- A better approach to improve performance & avoid Zombies.
-```javascript
-  var OuterView = Backbone.View.extend({
-    initialize: function() {
-      this.inner = new InnerView(); // Instantiated just once
-    },
-
-    render: function() {
-      this.$el.append(template);
-      this.$('#some-container').append(this.innerView.el);
-      this.inner.render();
-    },
-
-    // Needs to be manually invoked before removing
-    close: function() {
-      this.inner.remove();
-    }
-  });
-```
-
-----
-
-## Manual approach
-
-- A better approach to improve performance & avoid Zombies.
-```javascript
-  var InnerView = Backbone.View.extend({
-    render: function() {
-      this.$el.html(template);
-
-      // Needed to bind events to new DOM
-      this.delegateEvents();
-    }
-  });
-```
-- This can easily get messy for multiple inner views.
-
-----
-
-## Marionette's Layout
-
-- *Marionette.Layout* extends from *Marionette.ItemView* but provides embedded *Marionette.Region*s which can be populated with other views.
-```javascript
-  var OuterView = Backbone.Marionette.Layout.extend({
-    template: '#outer-template',
-
-    regions: {
-      inner: '#inner-template'
-    }
-  });
-
-  var outer = new OuterView();
-  outer.render();
-
-  var inner = new InnerView();
-  outer.inner.show(inner);
-```
-
----
-
-## Application and Modules
-
-- Global vars are evil. Nesting global vars (*namespaces*) is a common alternative, but it can easily get slow/messy.
-- Non-AMD applications usually have a global var to represent the app, hold the declarations and initialize it.
-- Introducing *Marionette.Application*, without nesting:
-```javascript
-  var MyApp = new Marionette.Application();
-
-  MyApp.addInitializer(function(options) {
-    new MyRouter(options.initialRoute);
-    Backbone.history.start();
-  });
-
-  MyApp.start({
-    initialRoute: 'home'
-  });
-```
-
-----
-
-## Marionette's Application
-
-- Can fire events on before, after and during initialization.
-- Holds *Marionette.Region*s for global layout organization.
-- Can define, access, start and stop *Marionette.Modules*:
-```javascript
-  MyApp.module('myModule', function() { // Defining
-    var privateData = 'I am private'; // Private var
-    this.publicFunction = function() { // Public method
-      return privateData;
+  function Dog(name, breed) {
+    this.name = name;
+    this.breed = breed; 
+    this.bark = function() {
+      return this.name + ': woof, woof, woof!';
     };
-
-    this.addInitializer(function() { // Initializer
-      console.log(privateData);
-    });
-  });
-
-  var myModule = MyApp.module('myModule'); // Accessing
-  myModule.start(); // Starting
-  myModule.stop(); // Stopping
-```
-
----
-
-## Router vs Controller
-
-- Routers commonly violate the *Single Responsibility Principle* (SRP) when used to:
-  - instantiate and manipulate views
-  - load models and collections
-  - coordinate modules
-- A Router's main (and only) purpose is to define routes and delegate the flow to different parts of the application.
-- According to MVC, *Controllers* should deal with such things as Models, Collections, Views and Modules.
-- Even though Backbone.js is MV*, there is nothing wrong on creating Controllers just as any other Module.
-
-----
-
-## Manual Approach
-
-- One approach is to delegate the routes to controllers:
-```javascript
-  var MyRouter = Backbone.Router.extend({
-    routes: {
-      '': 'home',
-      'home': 'home',
-      'product/:id': 'viewProduct',
-    },
-
-    home: function() {
-      myController.home();
-    },
-
-    viewProduct: function(productId) {
-      myController.viewProduct(productId);
-    }
-  });
+  }
+ 
+  var myDog = new Dog('Sherlock', 'beagle');
+  console.log(myDog.bark());
 ```
 
 ----
 
-## Marionette's AppRouter
+## Prototype
 
-- *Marionette.AppRouter* binds the route methods to an external *Controller*:
+- Defining functions in the constructor is not ideal, as the function will be redefined for each new instance.
+- Using the *prototype*, all instances can share functions.
 ```javascript
-  var MyRouter = new Marionette.AppRouter({
-    controller: myController,
-    appRoutes: {
-      '': 'home',
-      'home': 'home',
-      'product/:id': 'viewProduct',
-    }
-  });
+  function Dog(name, breed) {
+    this.name = name;
+    this.breed = breed;
+  }
+    
+  Dog.prototype.bark = function() {
+      return this.name + ': woof, woof!';
+    };
+  }
+   
+  var myDog = new Dog('Sherlock', 'beagle');
+  console.log(myDog.bark());
 ```
-- Good practice: divide routes into smaller pieces of related functionality and have multiple routers / controllers, instead of just one giant router and controller.
 
 ---
 
-## Cohesion
+## Module
 
-- Backbone.js provides Models, Collections, Views and Routers. It doesn't mean we can't use other components here.
-- Why should you write a complex interface logic (full of customized components) on the same file?
-- To achieve a good separation of concerns, factor small pieces of related code into *cohesive Modules*:
+- Emulates classic OO classes to support public/private methods and variables inside a single object.
+- Encapsulation achieved through closures.
 ```javascript
-  MyApp.module('vehicleFactory', function() {
-    this.createVehicle = function(wheels) {
-      switch (wheels) {
-        case 2: return new MotorcycleModel();
-        case 4: return new CarModel();
-        default: return new VehicleModel();
+  var myDog = (function(name, breed) {
+    var getBarkStyle = function() {
+      return (breed === 'husky')? 'woooooow!': 'woof, woof!';
+    }; 
+
+    return {
+      bark: function() {
+        return name + ': ' + getBarkStyle();
       }
-    }
-  });
+    };
+  })('Sherlock', 'beagle');
+
+  console.log(myDog.bark());
 ```
-
----
-
-## Coupling
-
-- Components depending on other components usually create unnecessary *tight coupling*, which can be greatly reduced using a Pub/Sub:
-```javascript
-  var alerter = {         // Should be a Subscriber
-    sayIt: function() {
-      alert('May the force be with you.');
-    }
-  };
-  var invoker = {         // Should be a Publisher
-    start: function() {
-      alerter.sayIt();
-    }
-  };
-  invoker.start();
-```
-- Back in [Design Patterns for Large-Scale Javascript](http://slid.es/avenuecode/design-patterns-for-large-scale-javascript), a manual Pub/Sub implementation was proposed.
 
 ----
 
-## Backbone.Radio
+## Revealing Module
 
-- [Backbone.Radio](https://github.com/marionettejs/backbone.radio) also implements a Pub/Sub:
+- Adds flexibility to switch methods and variables from public to private scope and vice-versa.
 ```javascript
-  MyApp.module('alerter', function() {   // Subscriber
-    this.addInitializer(function() {
-      Backbone.Radio.channel('alerter').on('sayIt', function() {
-        alert('May the force be with you.');
-      });
-    });
-  });
+  var myDog = (function(name, breed) { 
+    function getBarkStyle() {
+      return (breed === 'husky')? 'woooooow!': 'woof, woof!';
+    }; 
+    function bark() {
+      return name + ': ' + getBarkStyle();
+    };  
 
-  MyApp.module('invoker', function() {   // Publisher
-    this.addInitializer(function() {
-      Backbone.Radio.channel('alerter').trigger('sayIt');
-    });
-  });
+    return {
+      name: name,
+      bark: bark
+    };
+  })('Sherlock', 'beagle');
 
-  MyApp.module('alerter').start();
-  MyApp.module('invoker').start();
+  console.log(myDog.bark());
 ```
-- This will be replacing *Backbone.Wreqr* on Marionette.js.
+
+----
+
+## Module
+
+- Highly enforced by JS community.
+- First-class citizen in *CommonJS* and *AMD*.
+```javascript
+  // CommonJS syntax
+  exports.sum = function(numberA, numberB) {
+    return numberA + numberB;
+  };
+```
+```javascript
+  // AMD syntax
+  define([], function() {
+    return {
+      sum: function(numberA, numberB) {
+        return numberA + numberB;
+      }
+    };
+  });
+```
+- Will be part of ES 6 Harmony - the upcoming version of JS.
 
 ---
 
-## Data binding
+## Fa&ccedil;ade
 
-- Backbone.js data binding is primitive while other MV* frameworks (Ember.js, Knockout.js, AngularJS) excel on it.
-- This code re-renders the whole View for each Model's change:
+- Provides a convenient higher-level interface to a component, hiding its complexity and simplifying the API.
 ```javascript
-  var MyView = Backbone.View.extend({
-    initialize: function() {
-      this.model && this.model.on('change', this.render, this); 
+  // Pure JS
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', 'http://code.jquery.com/jquery-latest.js', true);
+  xhr.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status === 200) {
+      console.log('success');
+    }
+  };
+
+  // jQuery
+  $.get('http://code.jquery.com/jquery-latest.js', function(data) {
+     console.log('success');
+  });
+```
+
+----
+
+## Fa&ccedil;ade
+
+```javascript
+var factorialFacade = (function() { 
+  var intermediateResults = [0, 1];
+  function calculate(n, stats) {
+    if (intermediateResults[n] === undefined) {
+      stats.ops++;
+      intermediateResults[n] = n * calculate(n - 1, stats);
+    }
+    return intermediateResults[n];              
+  }
+  return {
+    factorial: function(n) {
+      var stats = { ops: 0 },
+          result = (n > 0 && n % 1 === 0)? calculate(n, stats): 0;
+      return n + '! = ' + result + ' (' + stats.ops + ' operations)';
+    }
+  };
+})();
+```
+
+[See this live on Plunker!](http://plnkr.co/edit/RxgtEUzah6DmC1jnlcim?p=preview)
+
+---
+
+## Observer/Custom Event
+
+- A Subject object maintains a list of interested Observer objects, automatically notifying them of its changes.
+```javascript
+  // Observers aka Listeners
+  var consoleObserver = function(event, msg) {
+    if (event === 'goal') {
+      console.log(msg.team + ' team just scored! ' + msg.score);
+    }
+  }
+    
+  var htmlObserver = function(event, msg) {
+    if (event === 'goal') {
+      $('h3').text(msg.team + ' team just scored! ' + msg.score);
+    }
+  }
+```
+
+----
+
+## Observer/Custom Event
+
+```javascript
+  // Subject aka Event Emitter
+  var soccerMatchSubject = (function(teamA, teamB) {
+    var scoreTable = {},
+        observers = [];
+
+    scoreTable[teamA] = scoreTable[teamB] = 0;   
+
+    function notify() {
+      var args = arguments;
+      $.each(observers, function(index, observer) {
+        observer.callback.apply(observer.context, args);
+      });
+    }
+
+    //... continues on the next slide
+```
+
+----
+
+## Observer/Custom Event
+
+```javascript
+  //... from the previous slide
+  return {
+
+    addObserver: function(fn) {
+      observers.push({ context: this, callback: fn });
     },
 
-    render: function() { ... }
-  });
-```
-- Ideally, one attribute change on the Model should just re-render that attribute's representation on the DOM and not the whole View.
-
-----
-
-## Epoxy.js
-
-<img src="img/epoxy.png" class="icon" />
-
-- *Epoxy.js* is a data binding library for<br/>
-Backbone.js based on Knockout.js<br/>
-and Ember.js, featuring:
-  - Declarative View Bindings
-  - Automatic View Updates
-  - Computed Model & View Attributes
-- It connects each Model's attribute with a DOM element.
-- Can be used together with Marionette's views.
-- Can also compute results from the attributes's data.
-
-----
-
-## Epoxy.js
-
-```html
-  <!-- Plain HTML template -->
-  <div id="my-form">
-    <label>Name:</label>
-    <input type="text" class="name">
-    <span class="name"></span>
-  </div>
-```
-
-```javascript
-  var bindModel = new Backbone.Model({
-    name: 'Lando Calrissian'
-  });
-
-  var BindingView = Backbone.Epoxy.View.extend({
-    el: '#my-form',
-    bindings: {
-      'input.name': 'value:name,events:["keyup"]', // Input
-      'span.name': 'text:name', // Output
+    // notifier method
+    goal: function(team) {      
+      scoreTable[team]++;
+      score = teamA + ' ' + scoreTable[teamA] + ' x ' + 
+              scoreTable[teamB] + ' ' + teamB;
+            
+      notify('goal', { team: team, score: score });
     }
-  });
+  };
 
-  var view = new BindingView({ model: bindModel });
+})('Brazil', 'Germany');
 ```
-
----
-
-## Components
-
-- Views reusability for real? Think components.
-- *Web Components* spec is right around the corner.
-- *React* is a View framework about:
-<img src="img/react.png" class="icon" />
-  - Components! (abstraction & composition)
-  - Elements (DOM) vs. Templates (strings)
-  - Virtual DOM 
-  - Reactive data flow (or *ReactLink* for Two-way)
-  - Bonus: works on the server-side!
-- *React* can replace the whole *Backbone.View* layer.
-- It just takes a mixin to be integrated with Backbone, or something as [react.backbone](https://github.com/clayallsopp/react.backbone).
 
 ----
 
-## React.js
+## Observer/Custom Event
+
+- Now we just need to add the observers to listen.
+```javascript
+  soccerMatchSubject.addObserver(consoleObserver);
+  soccerMatchSubject.addObserver(htmlObserver);
+```
+- Notifier method is called -> all its observers will execute.
+- *Reduced coupling:* the observers and subject do not have hard dependencies on each other.
+- [See this live on Plunker!](http://plnkr.co/edit/zOYp5LUINc3GzylhxrZH?p=preview)
+
+---
+
+## Mediator/Pub-Sub
+
+- Exposes an unified interface through which the different parts of a system may communicate.
+- Using *Observer* reduces the coupling, but notice how the Subject still hold references to the Observers.
+- Potential Garbage Collection issues: you must remember to remove the Observer references from all the Subjects.
+- A *Mediator* can completely decouple Subject and Observers by introducing a intermediate layer in between.
+
+----
+
+## Mediator/Pub-Sub
 
 ```javascript
-  var bindModel = new Backbone.Model({
-    name: 'Lando Calrissian'
-  });
-
-  var BindingView = React.createBackboneClass({
-    render: function() {
-      return (
-        React.DOM.span( 
-          { className: 'name' }, this.getModel().get('name')
-        )
-      );
+  var mediator = {
+    channels: {},
+    subscribe: function(channel, fn) {
+      if (!mediator.channels[channel]) mediator.channels[channel] = [];
+      mediator.channels[channel].push({ context: this, callback: fn });
+    },
+    publish: function(channel){
+      if (!mediator.channels[channel]) return;
+      var args = Array.prototype.slice.call(arguments, 1);
+      $.each(mediator.channels[channel], function(index, subscriber) {
+        subscriber.callback.apply(subscriber.context, args);
+      });
+    },      
+    installTo: function(publisher){
+      publisher.subscribe = mediator.subscribe;
+      publisher.publish = mediator.publish;
     }
-  });
-
-  React.renderComponent(
-    BindingView({ model: bindModel }), document.getElementById('my-form')
-  );
+  };
 ```
-
----
-
-## Benchmark
-
-- <a href="http://jsfiddle.net/tiagorg/5L9qxnsq/" target="_blank">JSFiddle</a>
-- Yes, structure and data binding have a price....
-- ...so as the chaos of not having them!
-
----
-
-## Mocking async calls
-
-- How to unit test Models that consume data from a server?
-- Using a real server can be slow. The server must also be up at all times, otherwise the tests will probably fail.
-- Using *data mocks* frees us from server dependency. 
-- However, it deviates from the way the Model will actually be used in Production, which creates challenges for testing.
-- What about replacing the browser async mechanism with a *mock-powered proxy*?
 
 ----
 
-## Sinon.JS
+## Mediator/Pub-Sub
 
-<img src="img/sinon.png" class="icon" />
-
-- Test spies, stubs and mocks for async.
-- Framework-agnostic.
 ```javascript
-  var server = sinon.fakeServer.create();
-  server.autoRespond = true;
-
-  server.respondWith(
-    'GET',
-    '/character/422',
-    [
-      200,
-      { 'Content-Type': 'application/json' },
-      JSON.stringify({
-        'id': 422,
-        'title': 'Lando Calrissian'
-      })
-    ]
-  );
+  var soccerMatchSubject = (function(teamA, teamB) {
+    var scoreTable = {};
+    scoreTable[teamA] = scoreTable[teamB] = 0;
+    
+    return {
+      goal: function(team) {      
+        scoreTable[team]++;
+        score = teamA + ' ' + scoreTable[teamA] + ' x ' + 
+                scoreTable[teamB] + ' ' + teamB;
+                  
+        this.publish('loggers', 'goal', { team: team, score: score });
+      }
+    };
+  })('Brazil', 'Germany');
+    
+  mediator.installTo(soccerMatchSubject);
 ```
-- Goes well with [Leche](https://github.com/box/leche) for mock creation.
+
+---
+
+## Large-scale Javascript
+
+- Large-scale is not about LOC or app size.
+- Large-scale is about the architectural support for growing in size while not growing in complexity.
+- To make this possible we need:
+    - cohesive modules
+    - low coupling between modules
+    - module independency
+    - module replaceability
+    - module security
+    - some infrastructure to control the modules
+
+---
+
+## Proposed Architecture
+
+- Employing patterns Module, Fa&ccedil;ade and Mediator:
+    - *Module* to encapsulate components / features.
+    - *Fa&ccedil;ade* to create a secure sandbox around the Modules.
+    - *Mediator* to orchestrate the Modules in terms of:
+        - publish and subscribe
+        - lifecycle (add, remove, start, stop)
+        - delivering messages
+- A Module can publisher, subscriber or both.
+
+---
+
+## Applying patterns
+
+```javascript
+  var NewEmailModule = function(from) {
+    return {
+      newEmail: function(email) {
+        email.from = from;
+        this.publish('email', { email : email });
+      }
+    };
+  };
+    
+  var myNewEmail = NewEmailModule('tgarcia@avenuecode.com');
+  mediator.installTo(myNewEmail);
+```
+
+----
+
+## Applying patterns
+
+```javascript
+  var MailboxModule = function(owner, channel) {
+    var emails = [];
+      
+    return {
+      receiveEmail: function(message) {
+        if (message.email.to === owner) {
+          emails.push(message.email);
+          this.publish(channel, { owner: owner, emails: emails });
+        }
+      }
+    };
+  };
+    
+  var myMailbox = MailboxModule('tgarcia@avenuecode.com', 'my-mailbox');
+  mediator.installTo(myMailbox);
+  mediator.subscribe('email', myMailbox.receiveEmail);
+```
+
+----
+
+## Applying patterns
+
+```javascript
+  var RenderMailboxModule = function(selector) {
+    var el = $(selector);
+      
+    return {
+      render: function(message) {
+        var frag = $(document.createDocumentFragment());
+        $.each(message.emails, function(index, email) {
+          frag.append('<h3>[' + index + '] ' + email.subject + '</h3>')
+              .append('<h4>From: ' + email.from + '</h4>')
+              .append('<p>' + email.content + '</p>');
+        });
+        el.html(frag);
+      }
+    };
+  };
+
+  var myRenderMailbox = RenderMailboxModule('#my-mailbox');
+  mediator.subscribe('my-mailbox', myRenderMailbox.render);
+```
+
+----
+
+## Applying patterns
+
+- This is the event triggering:
+```javascript
+  $('button').click(function(e) {
+      e.preventDefault();
+      var email = {
+        to: $('input[name=to]').val(),
+        subject: $('input[name=subject]').val(),
+        content: $('textarea[name=content]').val()
+      };
+      myNewEmail.newEmail(email);
+    });
+  });
+```
+- Notice how a module doesn't know about other modules.
+- [See this live on Plunker!](http://plnkr.co/edit/UVB6IIawq5YySC1T5c3f?p=preview)
 
 ---
 
 ## Conclusion
 
-- Backbone.js is not a complete application structure framework, thus many details are left for the developer.
-- In order to avoid problems and keep up with the good practices, *Marionette.js* comes very handy.
-- Data binding can be made easy with *Epoxy.js*.
-- *React.js* can greatly componentize your View layer.
-- Mocking async calls with *Sinon.JS* provides a solid way to test Backbone.js integration.
+- Design Patterns provide recommended solutions for common problems in OOP.
+- Javascript badly needs that to avoid "spaghetti code".
+- Patterns as Module, *Fa&ccedil;ade and Mediator can be combined in a solid solution for Large-Scale JS.
+- It is very important to avoid coupling at all costs in order to leverage scalability and maintainability.
 
 ---
 
 ## Learn more
 
-1. [Structuring jQuery with Backbone.js](http://www.codemag.com/Article/1312061)
-1. [Step by step from jQuery to Backbone](https://github.com/kjbekkelund/writings/blob/master/published/understanding-backbone.md)
-1. [Zombies! RUN! (Managing Page Transitions In Backbone)](http://lostechies.com/derickbailey/2011/09/15/zombies-run-managing-page-transitions-in-backbone-apps/)
-1. [Developing Backbone.js Applications](http://addyosmani.github.io/backbone-fundamentals)
-1. [Marionette.js](https://github.com/marionettejs/backbone.marionette)
-1. [Reducing Backbone Routers To Nothing More Than Configuration](http://lostechies.com/derickbailey/2012/01/02/reducing-backbone-routers-to-nothing-more-than-configuration/)
-1. [Backbone.Radio](https://github.com/marionettejs/backbone.radio)
-1. [Epoxy.js](http://epoxyjs.org)
-1. [React](http://facebook.github.io/react/)
-1. [Sinon.JS](http://sinonjs.org)
-1. [Leche](https://github.com/box/leche)
-
----
-
-## Meetups
-
-1. [Backbone.js Hackers](http://www.meetup.com/Backbone-js-Hackers/) - San Francisco
-1. [Dancing with Marionette](http://www.meetup.com/Dancing-with-Marionette-js/) - New York
-1. [ReactJS](http://www.meetup.com/ReactJS-San-Francisco/) - San Francisco
+- [Javascript Patterns - Stoyan Stefanov](http://shop.oreilly.com/product/9780596806767.do)
+- [Learning JavaScript Design Patterns - Addy Osmani](http://addyosmani.com/resources/essentialjsdesignpatterns)
+- [Patterns for Large-Scale JavaScript Application Architecture - Addy Osmani](http://addyosmani.com/largescalejavascript)
+- [AuraJS](http://aurajs.com)
 
 ---
 
 ## Challenge
 
-1. Fork my [Quiz App](https://github.com/tiagorg/quiz-app) or come up with a brand new Backbone.js application which requires interaction with the user.
-1. Use *Marionette.js* and either *React.js* or *Epoxy.js*. Explore them well and use their features as much as possible.
-1. Evaluate the pros and cons of your solution regarding the adoption of such frameworks, in terms of code organization, verbosity, scalability and robustness.
-1. Send me your analysis and project in a GitHub repo.
+*Write a large-scale client-side app using design patterns.*
+
+- For Backbone.js devs:
+    1. Fork my quiz app from https://github.com/tiagorg/quiz-app
+    1. Read the instructions on [README.md](https://github.com/tiagorg/quiz-app#refactor-to-design-patterns-for-large-scale-js)
+    1. Send me your GitHub repo with the solution.
+- Alternatively, write your application from scratch.
